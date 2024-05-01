@@ -1,4 +1,4 @@
-from line_search import Golden_Quadratic
+from line_search import Golden_Quadratic ,GoldenSection
 def f(x):
     return x ** 3 - 9*x
 

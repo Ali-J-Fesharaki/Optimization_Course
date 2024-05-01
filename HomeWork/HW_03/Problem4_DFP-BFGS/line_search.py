@@ -2,7 +2,7 @@ import numpy as np
 from tabulate import tabulate
 
 class Golden_Quadratic:
-    def __init__(self, f, interval, accuracy, max_iter=50):
+    def __init__(self, f, interval=(0,1), accuracy=1e-5, max_iter=50):
         self.f = f
         self.__interval = interval
         self.__accuracy = accuracy
@@ -27,7 +27,7 @@ class Golden_Quadratic:
         return x_optimal, 2*self.golden_itr+ 3*self.quadratic_itr
 
 class GoldenSection:
-    def __init__(self, f, interval, accuracy, max_iter=100):
+    def __init__(self, f, interval=(0,1), accuracy=1e-5, max_iter=100):
         self.f = f
         self.__interval = interval
         self.__accuracy = accuracy
@@ -84,7 +84,7 @@ class GoldenSection:
         return (a + b) / 2,k
 
 class QuadraticCurveFitting:
-    def __init__(self, f, interval, accuracy, max_iter=100):
+       def __init__(self, f, interval=(0,1), accuracy=1e-5, max_iter=100):
         self.f = f
         self.__interval = interval
         self.__accuracy = accuracy

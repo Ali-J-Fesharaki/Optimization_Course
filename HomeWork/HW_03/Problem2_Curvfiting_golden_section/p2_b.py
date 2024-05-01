@@ -6,6 +6,6 @@ interval = [1, 2]
 accuracy = 1e-5
 
 optimizer = Golden_Quadratic(f, interval, accuracy)
-opt_point, fej_qc = optimizer.optimize()
+opt_point, FE_qc = optimizer.optimize()
 print("Optimal point:", opt_point)
-print("Number of function evaluations:", fej_qc)
+print("Number of function evaluations:", FE_qc)

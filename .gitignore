@@ -25,8 +25,13 @@ Ml-HW1/AML_HW01
 *.docx
 *.db*
 *.*model*
-**.m*
+HomeWork/prepared_home_Work
 *.xlsx
 *.asv
 Lectures/s
+HomeWork/**/**.m
+Project/first_Project/temp/**/*.m
+Project/first_Project/temp/mahdi gorji_project1/matlab_optimization_toolbox/pattern_search.mlx
+Project/first_Project/temp/mahdi gorji_project1/matlab_optimization_toolbox/fminsearch.mlx
+Project/first_Project/My_Project/Simplex/f_2_min_analytical.mat
 HomeWork/HW_03/Problem2_Curvfiting_golden_section/__pycache__/line_search.cpython-310.pyc

@@ -1,19 +1,23 @@
-function [optimum_point,optimum_value,k] = conjugate_gradient (f,x,x0,tol_FR,tol_GS,N,order);
+function [optimum_point,optimum_value,k] = conjugate_gradient (f,x,x0,tol_FR,tol_GS,N,order)
 syms alf
 k=1;
 format long
-v(:,1)=x0;
 n=size(x0,1);
+v=zeros(n,400);
+v(:,1)=x0;
+d=zeros(n,400);
 g = gradient(f);
 c(:,k) = subs(g,x,v(:,k)); % evaluate gradient at initial point
+
+
 func_eval = 1;
-while norm(c(:,k)) > tol_FR && k < 100
+while k < 400
     fprintf('\n*****  step %i:  *****\n',k)
     if mod(k,n)==0 || k==1
         d(:,k) = -c(:,k);
     else
-        beta(k,:) = (norm(c(:,k))/norm(c(:,k-1)))^2; %beta is a number
-        d(:,k) = -c(:,k)+beta(k,:)*d(:,k-1);
+        beta(k) = (norm(c(:,k))/norm(c(:,k-1)))^2; %beta is a number
+        d(:,k) = -c(:,k)+beta(k)*d(:,k-1);
     end
     if d(:,k)>1
         d(:,k) = d(:,k)/norm(d(:,k)); %normalization of direction
@@ -30,9 +34,17 @@ while norm(c(:,k)) > tol_FR && k < 100
 
     v(:,k+1) = v(:,k) + alfa*d(:,k);
     c(:,k+1) = subs(g,x,v(:,k+1));
+    if(norm(c(:,k+1))<tol_FR)
+        
+    end
     func_eval=func_eval+1; %function evaluaion 
     fprintf('\nnorm of gradient is: %f  \n\n\n',norm(c(:,k+1)))
     k=k+1;
+    fprintf(' the distance between two opt_point : %f',norm(v(:,k+1)-v(:,k)));
+    if (norm(v(:,k+1)-v(:,k))<tol_FR)
+        fprintf('algorithm converged the distance between two opt_point : %f',norm(v(:,k+1)-v(:,k)));
+        break;
+    end
 end
 fprintf('\n ****************** final step is:%i ****************** \n ',k-1)
 fprintf('\nsum of the Fletcher Reeves function evaluation is: %i \n',func_eval)
@@ -51,6 +63,6 @@ FR_iteration=(0:k-1)';
     end
 
     % Save the table to an Excel file without headers
-    writetable(ResultsTable, 'Conjugate_Gradient_Results4.xlsx')
+    writetable(ResultsTable, 'Conjugate_Gradient_Results.xlsx')
 
 end

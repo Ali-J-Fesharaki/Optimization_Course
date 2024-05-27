@@ -1,10 +1,41 @@
-clc
-clear
-options = optimoptions('fminunc');
-options = optimoptions(options,'Display', 'iter');
-options = optimoptions(options,'FunValCheck', 'off');
-options = optimoptions(options,'Algorithm', 'quasi-newton');
-options = optimoptions(options,'Diagnostics', 'on');
-x0=[1,-2,5]';
-[x,fval,exitflag,output,grad,hessian] = ...
-fminunc(@(v)(1-v(1))^2+(1-v(2))^2+60*(v(2)-v(1)^2)^2+60*(v(3)-v(2)^2)^2,x0,options)
+clc;
+clear;
+response = input(['if you want to solve cardinal problem insert "1" then press inter' ...
+    ' \nelse if you want to define a new function insert "2" then press inter\n' ...
+    '**pressing any other key will solve a sample quadratic problem **\n']);
+if response==1
+    x0=[0, 0, 0]';
+    n=size(x0,1);
+    x=sym("x", [n 1]);
+    f=@(x)(4-x(1))^2+(4-x(2))^2+45*(x(2)-x(1)^2)^2+45*(x(3)-x(2)^2)^2
+    order=4;
+elseif response==2
+    x0=[0, 0]';
+    n=size(x0,1);
+    x=sym("x", [n 1]);
+    f=@(x)(x(1)*x(2)-x(1)+1.5)^2+(x(1)*x(2)^2-x(1)+2.25)^2+(x(1)*x(2)^3-x(1)+2.625)^2
+    order=6;
+end
+% Create options structure with desired settings
+options = optimoptions('fminunc', ...
+    'Display', 'iter', ...       % Show iteration output
+    'FunValCheck', 'off', ...    % Don't check function values for NaN or Inf
+    'Algorithm', 'quasi-newton', ... % Use quasi-Newton algorithm
+    'Diagnostics', 'on', ...     % Show diagnostic information
+    'TolX', 1e-4)            % Tolerance on the change in variables
+
+% Perform the optimization
+[x, fval, exitflag, output, grad, hessian] = fminunc(f, x0, options);
+% Display the results
+disp('Optimal point:');
+disp(x);
+disp('Function value at optimal point:');
+disp(fval);
+disp('Exit flag:');
+disp(exitflag);
+disp('Output structure:');
+disp(output);
+disp('Gradient at optimal point:');
+disp(grad);
+disp('Hessian at optimal point:');
+disp(hessian);

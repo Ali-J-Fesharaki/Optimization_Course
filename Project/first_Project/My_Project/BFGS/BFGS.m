@@ -14,7 +14,7 @@ else
 
 beta(:,:,1)=eye(n);
 k=1;
-while vpa(norm(c(:,k)),2) > tol_BFGS && k < 100
+while vpa(norm(c(:,k)),2) > tol_BFGS && k < 400
     fprintf('\n*****  step %i:  *****\n',k)
     % solving this eqs: B(:,:,k)*d(:,k) = -c(:,k);
     v=sym("v", [n 1]);
@@ -69,47 +69,12 @@ GS_iteration(k,:)=0;
 x = vpa(X,5)';
 BFGS_iteration=(0:k-1)';
 
-Hedears={'BFGS iteration','Golden Section iterations','x1','x2','x3','x3'};
+    ResultsTable = table(BFGS_iteration, GS_iteration);
+    for i = 1:n
+        ResultsTable.(sprintf('x%d', i)) = double(x(:, i));
+    end
 
-BFGS_iter=num2cell(BFGS_iteration);
-xlswrite('BFGS_Results.xlsx',[Hedears{1}; BFGS_iter ],'results','A');
-GS_iter=num2cell(GS_iteration);
-xlswrite('BFGS_Results.xlsx',[Hedears{2}; GS_iter ],'results','B');
-
-if n==2
-    x1=double(x(:,1));
-    x2=double(x(:,2));
-  %  Results = table(BFGS_iteration,x1, x2)
-    X1=num2cell(x1);
-    xlswrite('BFGS_Results.xlsx',[Hedears{3}; X1 ],'results','C');
-    X2=num2cell(x2);
-    xlswrite('BFGS_Results.xlsx',[Hedears{4}; X2 ],'results','D');
-elseif n==3
-    x1=double(x(:,1));
-    x2=double(x(:,2));
-    x3=double(x(:,3));
-  %  Results = table(BFGS_iteration,GS_iteration, x1,x2,x3)
-    X1=num2cell(x1);
-    xlswrite('BFGS_Results.xlsx',[Hedears{3}; X1 ],'results','C');
-    X2=num2cell(x2);
-    xlswrite('BFGS_Results.xlsx',[Hedears{4}; X2 ],'results','D');
-    X3=num2cell(x3);
-    xlswrite('BFGS_Results.xlsx',[Hedears{5}; X3 ],'results','E');
-elseif n==4
-    x1=double(x(:,1));
-    x2=double(x(:,2));
-    x3=double(x(:,3));
-    x4=double(x(:,4));
-  %  Results = table(BFGS_iteration,GS_iteration, x1, x2, x3, x4)
-    X1=num2cell(x1);
-    xlswrite('BFGS_Results.xlsx',[Hedears{3}; X1 ],'results','C');
-    X2=num2cell(x2);
-    xlswrite('BFGS_Results.xlsx',[Hedears{4}; X2 ],'results','D');
-    X3=num2cell(x3);
-    xlswrite('BFGS_Results.xlsx',[Hedears{5}; X3 ],'results','E');
-    X4=num2cell(x4);
-    xlswrite('BFGS_Results.xlsx',[Hedears{6}; X4 ],'results','F');
-end
-
+    % Save the table to an Excel file without headers
+    writetable(ResultsTable, 'BFGS_Results.xlsx')
 
 end

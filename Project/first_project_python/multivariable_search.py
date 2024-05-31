@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from line_search import GoldenSection
 class FunctionWithEvalCounter:
     def __init__(self, f):
@@ -14,18 +15,52 @@ class FunctionWithEvalCounter:
 
     def get_eval_count(self):
         return self.eval_count
+class OptimizationLogger:
+    def __init__(self, optimizer_name, line_search_name, initial_point):
+        self.optimizer_name = optimizer_name
+        self.line_search_name = line_search_name
+        self.initial_point = initial_point
+        self.records = []
+
+    def log(self,**kwargs):
+        self.records.append({
+            **kwargs
+        })
+
+    def get_dataframe(self):
+        df = pd.DataFrame(self.records)
+        df.attrs['optimizer_name'] = self.optimizer_name
+        df.attrs['line_search_name'] = self.line_search_name
+        df.attrs['initial_point'] = self.initial_point
+        return df
+
+    def construct_filename(self):
+        initial_point_str = str(self.initial_point).replace(" ", ",")
+        filename = f"{self.optimizer_name}_{self.line_search_name}_{initial_point_str}.csv"
+        return filename.replace(" ", "_")
+
+    def save_to_file(self):
+        df = self.get_dataframe()
+        filename = self.construct_filename()
+        print(filename)
+        df.to_csv(filename, index=False)
 class BFGS:
-    def __init__(self, f, grad_f, tol=1e-6, tol_ls=1e-6, max_iter=100, stopping_criteria='gradient_norm'):
+    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=1000, stopping_criteria='point_diff', optimizer_name='BFGS', line_search_name='GoldenSection'):
         self.f = FunctionWithEvalCounter(f)
         self.grad_f = FunctionWithEvalCounter(grad_f)
         self.tol = tol
         self.tol_ls = tol_ls
         self.max_iter = max_iter
+        self.optimizer_name = optimizer_name
+        self.line_search_name = line_search_name
+
         self.stopping_criteria = stopping_criteria
         self.LS_function_evaluation=0
     def optimize(self, x0):
         self.f.reset()
         self.grad_f.reset()
+        self.f.reset()
+        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
 
         X = [x0]
         C = [self.grad_f(x0)]
@@ -44,7 +79,7 @@ class BFGS:
             d = v / np.linalg.norm(v)
             
             #line search
-            golden_section = QuadraticCurveFitting(lambda alpha: self.f(X[k] + alpha * d))
+            golden_section = GoldenSection(lambda alpha: self.f(X[k] + alpha * d))
             alfa, _ = golden_section.optimize()
             self.LS_function_evaluation+=_
                 
@@ -62,12 +97,13 @@ class BFGS:
             beta.append(beta[k] + D - E)
 
             k += 1
+            self.logger.log(iteration=k, point=X[k], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
 
         optimum_point = X[k]
         optimum_value = self.f(optimum_point)
         func_eval = self.f.get_eval_count() 
-        return optimum_point, optimum_value, func_eval ,self.LS_function_evaluation,k
-    
+        return optimum_point, optimum_value, func_eval,self.LS_function_evaluation, k, self.logger.get_dataframe()  
+      
     def hessian(self, x):
         hess = np.zeros((len(x), len(x)))
         for i in range(len(x)):
@@ -77,7 +113,7 @@ class BFGS:
 
 
 class FletcherReeves:
-    def __init__(self, f, grad_f, tol=1e-6, tol_ls=1e-6, max_iter=100, stopping_criteria='gradient_norm'):
+    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=1000, stopping_criteria='point_diff', optimizer_name='FletcherReeves', line_search_name='GoldenSection'):
         self.f = FunctionWithEvalCounter(f)
         self.grad_f = FunctionWithEvalCounter(grad_f)
         self.tol = tol
@@ -85,10 +121,14 @@ class FletcherReeves:
         self.max_iter = max_iter
         self.stopping_criteria = stopping_criteria
         self.LS_function_evaluation=0
+        self.optimizer_name = optimizer_name
+        self.line_search_name = line_search_name
 
     def optimize(self, x0):
         self.f.reset()
         self.grad_f.reset()
+        self.f.reset()
+        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
 
         X = [x0]
         C = [self.grad_f(x0)]
@@ -120,24 +160,31 @@ class FletcherReeves:
             X.append(X[k] + alfa * d)
             C.append(self.grad_f(X[k+1]))
             k += 1
+            self.logger.log(iteration=k, point=X[k], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
 
         optimum_point = X[k]
         optimum_value = self.f(optimum_point)
         func_eval = self.f.get_eval_count() 
-        return optimum_point, optimum_value, func_eval,self.LS_function_evaluation,k
+        return optimum_point, optimum_value, func_eval, self.LS_function_evaluation, k, self.logger.get_dataframe()
 
 import numpy as np
 from line_search import QuadraticCurveFitting
 
 class Powell:
-    def __init__(self, f, tol=1e-6, max_iter=100, stopping_criteria='gradient_norm'):
+    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
         self.stopping_criteria = stopping_criteria
+        self.optimizer_name = optimizer_name
+        self.line_search_name = line_search_name
+        self.LS_function_evaluation=0
+        self.logger = None
+        self.ls_fe=0
 
     def optimize(self, x0):
         self.f.reset()
+        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
 
         n = len(x0)
         X = x0.copy()
@@ -149,13 +196,14 @@ class Powell:
             X_prev = X.copy()
             for i in range(n):
                 d = U[:, i]
-                golden_section = QuadraticCurveFitting(lambda alpha: self.f(X[k] + alpha * d))
+                golden_section = GoldenSection(lambda alpha: self.f(X[k] + alpha * d))
                 alfa, _ = golden_section.optimize()
                 X = X + alfa * d
 
             d = X - X_prev
             golden_section = QuadraticCurveFitting(lambda alpha: self.f(X[k] + alpha * d))
             alfa, _ = golden_section.optimize()
+            self.LS_function_evaluation+=_
             X_new = X + alfa * d
 
             if self.stopping_criteria == 'point_diff' and np.linalg.norm(X_new - X_prev) < self.tol:
@@ -166,24 +214,31 @@ class Powell:
             U[:, 0:n-1] = U[:, 1:n]
             U[:, -1] = d / np.linalg.norm(d)
             X = X_new
+            self.logger.log(iteration=k, point=X[k], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
+
 
         optimum_point = X
         optimum_value = self.f(X)
         func_eval = self.f.get_eval_count()
 
-        return optimum_point, optimum_value, func_eval
+        return optimum_point, optimum_value, func_eval, self.ls_fe, k, self.logger.get_dataframe()
 
-import numpy as np
 
-class NelderMead:
-    def __init__(self, f, tol=1e-6, max_iter=100, stopping_criteria='point_diff'):
+
+"""class NelderMead:
+    def __init__(self, f, grad_f=None, tol=1e-6, max_iter=100, stopping_criteria='point_diff', optimizer_name='Nelder-Mead', line_search_name='None'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
         self.stopping_criteria = stopping_criteria
+        self.optimizer_name = optimizer_name
+        self.line_search_name = line_search_name
+        self.logger = None
+        self.ls_fe = 0
 
     def optimize(self, x0):
         self.f.reset()
+        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
 
         n = len(x0)
         alpha = 1.0
@@ -202,40 +257,50 @@ class NelderMead:
 
         for k in range(self.max_iter):
             simplex = sorted(simplex, key=lambda x: self.f(x))
-
+            point = None
+            value = None
+            if k % n == 0:
+                point = simplex[0]
+                value = self.f(point)
             if self.stopping_criteria == 'point_diff' and np.max(np.abs(simplex[0] - simplex[1:])) < self.tol:
                 break
 
             x0 = np.mean(simplex[:-1], axis=0)
             xr = x0 + alpha * (x0 - simplex[-1])
             fr = self.f(xr)
-
             if self.f(simplex[0]) <= fr < self.f(simplex[-2]):
                 simplex[-1] = xr
+                self.logger.log_iteration(k, xr, fr, self.f.get_eval_count(), self.ls_fe, operation='reflection')
             elif fr < self.f(simplex[0]):
                 xe = x0 + gamma * (xr - x0)
                 fe = self.f(xe)
                 if fe < fr:
                     simplex[-1] = xe
+                    self.logger.log_iteration(k, xe, fe, self.f.get_eval_count(), self.ls_fe, operation='expansion')
                 else:
                     simplex[-1] = xr
+                    self.logger.log_iteration(k, xr, fr, self.f.get_eval_count(), self.ls_fe, operation='reflection')
             else:
                 xc = x0 + rho * (simplex[-1] - x0)
                 fc = self.f(xc)
                 if fc < self.f(simplex[-1]):
                     simplex[-1] = xc
+                    self.logger.log_iteration(k, xc, fc, self.f.get_eval_count(), self.ls_fe, operation='contraction')
                 else:
                     for i in range(1, len(simplex)):
                         simplex[i] = simplex[0] + sigma * (simplex[i] - simplex[0])
-
-            if self.stopping_criteria == 'gradient_norm' and np.max(np.abs(simplex[0] - simplex[1:])) < self.tol:
-                break
+                    self.logger.log_iteration(k, None, None, self.f.get_eval_count(), self.ls_fe, operation='shrink')
+            
 
         optimum_point = simplex[0]
         optimum_value = self.f(optimum_point)
         func_eval = self.f.get_eval_count()
 
-        return optimum_point, optimum_value, func_eval
+        return optimum_point, optimum_value, func_eval, self.ls_fe, k, self.logger.get_dataframe()"""
+
+
+
+
 # Example function to optimize
 def quadratic(x):
     return np.dot(x, x)
@@ -245,13 +310,14 @@ def grad_quadratic(x):
     return 2 * x
 
 if __name__ == "__main__":
-    optimizer = BFGS(quadratic, grad_quadratic, stopping_criteria='point_diff')
+    optimizer = Powell(quadratic, grad_quadratic, stopping_criteria='point_diff')
     x0 = np.array([100.0, 100.0])
-    optimum_point, optimum_value, func_eval,ls_fe,k = optimizer.optimize(x0)
+    optimum_point, optimum_value, func_eval,ls_fe,k,df = optimizer.optimize(x0)
     print("Optimum Point:", optimum_point)
     print("Optimum Value:", optimum_value)
     print("Function Evaluations:", func_eval)
     print("Line Search Function Evaluations:", ls_fe)
     print("Iterations:",k)
+    optimizer.logger.save_to_file()
 
 

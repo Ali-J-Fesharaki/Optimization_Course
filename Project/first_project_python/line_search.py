@@ -165,18 +165,63 @@ class QuadraticCurveFitting:
 
         return x_opt, k
 
-# Example function to optimize
-def test_function(x):
-    return (x - 2) ** 2 + 3
+# Define test cases
+class FunctionWithEvalCounter:
+    def __init__(self, f):
+        self.f = f
+        self.eval_count = 0
+
+    def __call__(self, x):
+        self.eval_count += 1
+        return self.f(x)
+
+    def reset(self):
+        self.eval_count = 0
+
+    def get_eval_count(self):
+        return self.eval_count
+def test_quadratic_curve_fitting():
+    test_cases = [
+        {
+            "description": "Basic Quadratic Function with Standard Interval",
+            "function": lambda x: (x - 2)**2,
+            "interval": (0, 5)
+        },
+        {
+            "description": "Quadratic Function with Roots Outside Interval",
+            "function": lambda x: (x - 10)**2,
+            "interval": (0, 5)
+        },
+        {
+            "description": "Quadratic Function with Minimum Inside Interval but not at Midpoint",
+            "function": lambda x: (x - 1)**2 + 3,
+            "interval": (0, 2)
+        },
+        {
+            "description": "Quadratic Function with Singular Matrix Check (edge case)",
+            "function": lambda x: 0,
+            "interval": (0, 0)
+        },
+        {
+            "description": "Quadratic Function with Narrow Interval",
+            "function": lambda x: (x - 1.5)**2 + 1,
+            "interval": (1, 2)
+        },
+        {
+            "description": "Quadratic Function with Large Interval",
+            "function": lambda x: (x - 3)**2,
+            "interval": (-100, 100)
+        }
+    ]
+
+    for case in test_cases:
+        print(f"Testing: {case['description']}")
+        f = FunctionWithEvalCounter(case["function"])
+        optimizer = QuadraticCurveFitting(f, interval=case["interval"])
+        x_opt, iterations = optimizer.optimize()
+        print(f"Optimal x: {x_opt}, found in {iterations} iterations\n")
+        print("="*50, "\n")
 
 # Initial interval
 if __name__ == "__main__":
-    interval = (0, 5)
-
-    # Perform hybrid optimization
-    optimizer = QuadraticCurveFitting(test_function, interval, 1e-6, 100)
-    minimum, iter_count = optimizer.optimize()
-    print("Minimum:", minimum)
-    print("Total Iterations:", iter_count)
-    #print("Golden Section Interval:", golden_interval)
-    #print("Quadratic Curve Fitting Interval:", quad_interval)
+    test_quadratic_curve_fitting()

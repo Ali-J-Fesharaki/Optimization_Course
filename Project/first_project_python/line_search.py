@@ -27,7 +27,7 @@ class Golden_Quadratic:
         return x_optimal, 2*self.golden_itr+ 3*self.quadratic_itr
 
 class GoldenSection:
-    def __init__(self, f, interval=(0,1), accuracy=1e-5, max_iter=100):
+    def __init__(self, f, interval=(0,1), accuracy=1e-6, max_iter=10000):
         self.f = f
         self.__interval = interval
         self.__accuracy = accuracy
@@ -84,7 +84,7 @@ class GoldenSection:
         return (a + b) / 2,k
 
 class QuadraticCurveFitting:
-       def __init__(self, f, interval=(0,1), accuracy=1e-5, max_iter=100):
+    def __init__(self, f, interval=(0,1), accuracy=1e-5, max_iter=100):
         self.f = f
         self.__interval = interval
         self.__accuracy = accuracy
@@ -121,7 +121,10 @@ class QuadraticCurveFitting:
             ])
 
             F = np.array([F_lower, F_upper, F_mid])
-            a = np.linalg.solve(X, F)
+            try:
+                a = np.linalg.solve(X, F)
+            except:
+                print("Singular matrix. Cannot solve.", X, F)
 
             x_prev = x_opt
             x_opt = -a[1] / (2 * a[2])
@@ -171,9 +174,9 @@ if __name__ == "__main__":
     interval = (0, 5)
 
     # Perform hybrid optimization
-    optimizer = Golden_Quadratic(test_function, interval, 1e-6, 100)
-    minimum, iter_count, golden_interval, quad_interval = optimizer.optimize()
+    optimizer = QuadraticCurveFitting(test_function, interval, 1e-6, 100)
+    minimum, iter_count = optimizer.optimize()
     print("Minimum:", minimum)
     print("Total Iterations:", iter_count)
-    print("Golden Section Interval:", golden_interval)
-    print("Quadratic Curve Fitting Interval:", quad_interval)
+    #print("Golden Section Interval:", golden_interval)
+    #print("Quadratic Curve Fitting Interval:", quad_interval)

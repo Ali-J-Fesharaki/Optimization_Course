@@ -14,7 +14,7 @@ else
 
 beta(:,:,1)=eye(n);
 k=1;
-while vpa(norm(c(:,k)),2) > tol_BFGS && k < 400
+while vpa(norm(c(:,k)),2) > tol_BFGS && k < 3
     fprintf('\n*****  step %i:  *****\n',k)
     % solving this eqs: B(:,:,k)*d(:,k) = -c(:,k);
     v=sym("v", [n 1]);

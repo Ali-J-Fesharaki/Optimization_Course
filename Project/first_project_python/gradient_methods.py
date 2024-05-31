@@ -1,4 +1,5 @@
 import numpy as np
+from line_search import GoldenSection
 class FletcherReeves:
     def __init__(self, f, grad_f, tol_FR=1e-6, tol_GS=1e-6, N=100, order=2):
         self.f = f

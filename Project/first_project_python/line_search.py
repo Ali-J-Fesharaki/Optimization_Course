@@ -83,8 +83,26 @@ class GoldenSection:
 
         return (a + b) / 2,k
 
+import numpy as np
+from tabulate import tabulate
+
+
+class FunctionWithEvalCounter:
+    def __init__(self, f):
+        self.f = f
+        self.eval_count = 0
+
+    def __call__(self, x):
+        self.eval_count += 1
+        return self.f(x)
+
+    def reset(self):
+        self.eval_count = 0
+
+    def get_eval_count(self):
+        return self.eval_count
 class QuadraticCurveFitting:
-    def __init__(self, f, interval=(0,1), accuracy=1e-5, max_iter=100):
+    def __init__(self, f, interval=(0, 1), accuracy=1e-5, max_iter=100):
         self.f = f
         self.__interval = interval
         self.__accuracy = accuracy
@@ -123,8 +141,15 @@ class QuadraticCurveFitting:
             F = np.array([F_lower, F_upper, F_mid])
             try:
                 a = np.linalg.solve(X, F)
-            except:
-                print("Singular matrix. Cannot solve.", X, F)
+            except np.linalg.LinAlgError:
+                print("Singular matrix encountered. Adjusting the interval and retrying...")
+                x_lower += 0.01 * (x_upper - x_lower)
+                x_upper -= 0.01 * (x_upper - x_lower)
+                x_mid = (x_lower + x_upper) / 2
+                F_lower = self.f(x_lower)
+                F_upper = self.f(x_upper)
+                F_mid = self.f(x_mid)
+                continue
 
             x_prev = x_opt
             x_opt = -a[1] / (2 * a[2])
@@ -156,7 +181,7 @@ class QuadraticCurveFitting:
             iterations_data.append([k, x_lower, x_upper, x_mid, F_lower, F_upper, F_mid])
 
         headers = ["Iteration", "x_lower", "x_upper", "x_mid", "F_lower", "F_upper", "F_mid"]
-        print(tabulate(iterations_data, headers=headers, tablefmt="grid",  floatfmt=".6f"))
+        print(tabulate(iterations_data, headers=headers, tablefmt="grid", floatfmt=".6f"))
 
         if abs(x_prev - x_opt) <= self.__accuracy:
             print("Optimization converged.")
@@ -166,21 +191,7 @@ class QuadraticCurveFitting:
         return x_opt, k
 
 # Define test cases
-class FunctionWithEvalCounter:
-    def __init__(self, f):
-        self.f = f
-        self.eval_count = 0
-
-    def __call__(self, x):
-        self.eval_count += 1
-        return self.f(x)
-
-    def reset(self):
-        self.eval_count = 0
-
-    def get_eval_count(self):
-        return self.eval_count
-def test_quadratic_curve_fitting():
+"""def test_quadratic_curve_fitting():
     test_cases = [
         {
             "description": "Basic Quadratic Function with Standard Interval",
@@ -222,6 +233,11 @@ def test_quadratic_curve_fitting():
         print(f"Optimal x: {x_opt}, found in {iterations} iterations\n")
         print("="*50, "\n")
 
+# Run the test cases
+test_quadratic_curve_fitting()
+
+
+
 # Initial interval
 if __name__ == "__main__":
-    test_quadratic_curve_fitting()
+    test_quadratic_curve_fitting()"""

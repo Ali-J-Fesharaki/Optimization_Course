@@ -53,6 +53,11 @@ class BFGS:
         self.max_iter = max_iter
         self.optimizer_name = optimizer_name
         self.line_search_name = line_search_name
+        if(self.line_search_name=='GoldenSection'):
+            self.line_search_method=GoldenSection
+        elif(self.line_search_name=='QuadraticCurveFitting'):
+            self.line_search_method=QuadraticCurveFitting
+        
 
         self.stopping_criteria = stopping_criteria
         self.LS_function_evaluation=0
@@ -79,7 +84,7 @@ class BFGS:
             d = v / np.linalg.norm(v)
             
             #line search
-            golden_section = GoldenSection(lambda alpha: self.f(X[k] + alpha * d))
+            golden_section =  self.line_search_method(lambda alpha: self.f(X[k] + alpha * d))
             alfa, _ = golden_section.optimize()
             self.LS_function_evaluation+=_
                 
@@ -123,6 +128,10 @@ class FletcherReeves:
         self.LS_function_evaluation=0
         self.optimizer_name = optimizer_name
         self.line_search_name = line_search_name
+        if(self.line_search_name=='GoldenSection'):
+            self.line_search_method=GoldenSection
+        elif(self.line_search_name=='QuadraticCurveFitting'):
+            self.line_search_method=QuadraticCurveFitting
 
     def optimize(self, x0):
         self.f.reset()
@@ -154,7 +163,7 @@ class FletcherReeves:
                 d = -C[k] + beta_k * d
 
             #line search
-            golden_section = GoldenSection(lambda alpha: self.f(X[k] + alpha * d))
+            golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d))
             alfa, _ = golden_section.optimize()
             self.LS_function_evaluation+=_
             X.append(X[k] + alfa * d)
@@ -181,30 +190,36 @@ class Powell:
         self.LS_function_evaluation=0
         self.logger = None
         self.ls_fe=0
-
+        if(self.line_search_name=='GoldenSection'):
+            self.line_search_method=GoldenSection
+        elif(self.line_search_name=='QuadraticCurveFitting'):
+            self.line_search_method=QuadraticCurveFitting
     def optimize(self, x0):
         self.f.reset()
         self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
 
         n = len(x0)
-        X = x0.copy()
+        X = [x0]
         U = np.eye(n)
         iter_count = 0
 
         for k in range(self.max_iter):
             iter_count += 1
-            X_prev = X.copy()
-            for i in range(n):
+            X_prev = X[k].copy()
+            for i in range(n-1):
                 d = U[:, i]
-                golden_section = GoldenSection(lambda alpha: self.f(X[k] + alpha * d))
+                print(X[k].shape)
+                print(d.shape)
+                golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d))
                 alfa, _ = golden_section.optimize()
-                X = X + alfa * d
+                self.LS_function_evaluation+=_
+                X[k] = X[k] + alfa * d
 
-            d = X - X_prev
-            golden_section = QuadraticCurveFitting(lambda alpha: self.f(X[k] + alpha * d))
+            d = X[k] - X_prev
+            golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d))
             alfa, _ = golden_section.optimize()
             self.LS_function_evaluation+=_
-            X_new = X + alfa * d
+            X_new = X[k] + alfa * d
 
             if self.stopping_criteria == 'point_diff' and np.linalg.norm(X_new - X_prev) < self.tol:
                 break
@@ -213,12 +228,12 @@ class Powell:
 
             U[:, 0:n-1] = U[:, 1:n]
             U[:, -1] = d / np.linalg.norm(d)
-            X = X_new
+            X.append(X_new)
             self.logger.log(iteration=k, point=X[k], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
 
 
-        optimum_point = X
-        optimum_value = self.f(X)
+        optimum_point = X[-1]
+        optimum_value = self.f(X[-1])
         func_eval = self.f.get_eval_count()
 
         return optimum_point, optimum_value, func_eval, self.ls_fe, k, self.logger.get_dataframe()
@@ -308,10 +323,10 @@ def quadratic(x):
 # Example gradient of the quadratic function
 def grad_quadratic(x):
     return 2 * x
-
+from functions import f_1, grad_f1, f_2, grad_f2
 if __name__ == "__main__":
-    optimizer = Powell(quadratic, grad_quadratic, stopping_criteria='point_diff')
-    x0 = np.array([100.0, 100.0])
+    optimizer = FletcherReeves(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff')
+    x0 = np.array([2 ,4,21])
     optimum_point, optimum_value, func_eval,ls_fe,k,df = optimizer.optimize(x0)
     print("Optimum Point:", optimum_point)
     print("Optimum Value:", optimum_value)

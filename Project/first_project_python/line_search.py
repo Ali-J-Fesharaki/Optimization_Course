@@ -27,10 +27,10 @@ class Golden_Quadratic:
         return x_optimal, 2*self.golden_itr+ 3*self.quadratic_itr
 
 class GoldenSection:
-    def __init__(self, f, interval=(0,1), accuracy=1e-6, max_iter=10000):
+    def __init__(self, f, interval=(0,1), tol=1e-6, max_iter=10000):
         self.f = f
         self.__interval = interval
-        self.__accuracy = accuracy
+        self.__accuracy = tol
         self.max_iter = max_iter
 
     def get_interval(self):
@@ -102,10 +102,10 @@ class FunctionWithEvalCounter:
     def get_eval_count(self):
         return self.eval_count
 class QuadraticCurveFitting:
-    def __init__(self, f, interval=(0, 1), accuracy=1e-5, max_iter=100):
+    def __init__(self, f, interval=(0, 1), tol=1e-5, max_iter=100):
         self.f = f
         self.__interval = interval
-        self.__accuracy = accuracy
+        self.__accuracy = tol
         self.max_iter = max_iter
     
     def set_interval(self, interval):

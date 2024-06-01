@@ -67,7 +67,6 @@ class BFGS:
     def optimize(self, x0):
         self.f.reset()
         self.grad_f.reset()
-        self.f.reset()
         self.logger = OptimizationLogger(self.optimizer_name,self.function_name, self.line_search_name, x0)
 
         X = [x0]
@@ -108,8 +107,8 @@ class BFGS:
             self.logger.log(iteration=k, point=X[k], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
 
         optimum_point = X[k]
-        optimum_value = self.f(optimum_point)
         func_eval = self.f.get_eval_count() 
+        optimum_value = self.f(optimum_point)
         return optimum_point, optimum_value, func_eval,self.LS_function_evaluation, k, self.logger.get_dataframe()  
       
     def hessian(self, x):
@@ -183,7 +182,7 @@ import numpy as np
 from line_search import QuadraticCurveFitting
 
 class Powell:
-    def __init__(self, f, grad_f=None, tol=1e-7,tol_ls=1e-6 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
+    def __init__(self, f, grad_f=None, tol=1e-8,tol_ls=1e-12 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
@@ -192,6 +191,7 @@ class Powell:
         self.line_search_name = line_search_name
         self.function_name=function_name
         self.LS_function_evaluation=0
+        self.tol_ls=tol_ls
         self.logger = None
         self.ls_fe=0
         if(self.line_search_name=='GoldenSection'):
@@ -210,17 +210,17 @@ class Powell:
         for k in range(self.max_iter):
             iter_count += 1
             X_prev = X[k].copy()
-            for i in range(n-1):
+            for i in range(n):
                 d = U[:, i]
                 print(X[k].shape)
                 print(d.shape)
-                golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d))
+                golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d), tol=self.tol_ls)
                 alfa, _ = golden_section.optimize()
                 self.LS_function_evaluation+=_
                 X[k] = X[k] + alfa * d
 
             d = X[k] - X_prev
-            golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d))
+            golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d), tol=self.tol_ls)
             alfa, _ = golden_section.optimize()
             self.LS_function_evaluation+=_
             X_new = X[k] + alfa * d
@@ -329,7 +329,7 @@ def grad_quadratic(x):
     return 2 * x
 from functions import f_1, grad_f1, f_2, grad_f2
 if __name__ == "__main__":
-    optimizer = Powell(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff',max_iter=500,function_name="f1")
+    optimizer = Powell(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff',max_iter=5000,function_name="f1")
     x0 = np.array([0 ,0,0])
     optimum_point, optimum_value, func_eval,ls_fe,k,df = optimizer.optimize(x0)
     print("Optimum Point:", optimum_point)

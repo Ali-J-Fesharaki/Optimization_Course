@@ -16,10 +16,11 @@ class FunctionWithEvalCounter:
     def get_eval_count(self):
         return self.eval_count
 class OptimizationLogger:
-    def __init__(self, optimizer_name, line_search_name, initial_point):
+    def __init__(self, optimizer_name, function_name,line_search_name, initial_point):
         self.optimizer_name = optimizer_name
         self.line_search_name = line_search_name
         self.initial_point = initial_point
+        self.function_name = function_name  
         self.records = []
 
     def log(self,**kwargs):
@@ -29,6 +30,7 @@ class OptimizationLogger:
 
     def get_dataframe(self):
         df = pd.DataFrame(self.records)
+        df.attrs['function_name'] = self.function_name
         df.attrs['optimizer_name'] = self.optimizer_name
         df.attrs['line_search_name'] = self.line_search_name
         df.attrs['initial_point'] = self.initial_point
@@ -36,7 +38,7 @@ class OptimizationLogger:
 
     def construct_filename(self):
         initial_point_str = str(self.initial_point).replace(" ", ",")
-        filename = f"{self.optimizer_name}_{self.line_search_name}_{initial_point_str}.csv"
+        filename = f"{self.function_name}_{self.optimizer_name}_{self.line_search_name}_{initial_point_str}.csv"
         return filename.replace(" ", "_")
 
     def save_to_file(self):
@@ -45,7 +47,7 @@ class OptimizationLogger:
         print(filename)
         df.to_csv(filename, index=False)
 class BFGS:
-    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=1000, stopping_criteria='point_diff', optimizer_name='BFGS', line_search_name='GoldenSection'):
+    def __init__(self, f, grad_f=None, tol=1e-4,tol_ls=1e-4,max_iter=1000, stopping_criteria='point_diff', optimizer_name='BFGS', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.grad_f = FunctionWithEvalCounter(grad_f)
         self.tol = tol
@@ -53,6 +55,7 @@ class BFGS:
         self.max_iter = max_iter
         self.optimizer_name = optimizer_name
         self.line_search_name = line_search_name
+        self.function_name=function_name
         if(self.line_search_name=='GoldenSection'):
             self.line_search_method=GoldenSection
         elif(self.line_search_name=='QuadraticCurveFitting'):
@@ -65,7 +68,7 @@ class BFGS:
         self.f.reset()
         self.grad_f.reset()
         self.f.reset()
-        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
+        self.logger = OptimizationLogger(self.optimizer_name,self.function_name, self.line_search_name, x0)
 
         X = [x0]
         C = [self.grad_f(x0)]
@@ -77,7 +80,7 @@ class BFGS:
             grad_norm = np.linalg.norm(C[k])
             if self.stopping_criteria == 'gradient_norm' and grad_norm < self.tol:
                 break
-            if self.stopping_criteria == 'point_diff' and k > 0 and np.linalg.norm(X[k] - X[k-1]) < self.tol:
+            if self.stopping_criteria == 'point_diff' and k > 0 and np.linalg.norm(X[k] - X[k-1]) < self.tol and grad_norm < self.tol:
                 break
 
             v = np.linalg.solve(beta[k], -C[k])
@@ -118,7 +121,7 @@ class BFGS:
 
 
 class FletcherReeves:
-    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=1000, stopping_criteria='point_diff', optimizer_name='FletcherReeves', line_search_name='GoldenSection'):
+    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=1000, stopping_criteria='point_diff', optimizer_name='FletcherReeves', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.grad_f = FunctionWithEvalCounter(grad_f)
         self.tol = tol
@@ -137,7 +140,7 @@ class FletcherReeves:
         self.f.reset()
         self.grad_f.reset()
         self.f.reset()
-        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
+        self.logger = OptimizationLogger(self.optimizer_name,self.function_name, self.line_search_name, x0)
 
         X = [x0]
         C = [self.grad_f(x0)]
@@ -180,13 +183,14 @@ import numpy as np
 from line_search import QuadraticCurveFitting
 
 class Powell:
-    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection'):
+    def __init__(self, f, grad_f=None, tol=1e-7,tol_ls=1e-6 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
         self.stopping_criteria = stopping_criteria
         self.optimizer_name = optimizer_name
         self.line_search_name = line_search_name
+        self.function_name=function_name
         self.LS_function_evaluation=0
         self.logger = None
         self.ls_fe=0
@@ -196,7 +200,7 @@ class Powell:
             self.line_search_method=QuadraticCurveFitting
     def optimize(self, x0):
         self.f.reset()
-        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
+        self.logger = OptimizationLogger(self.optimizer_name,self.function_name, self.line_search_name, x0)
 
         n = len(x0)
         X = [x0]
@@ -325,8 +329,8 @@ def grad_quadratic(x):
     return 2 * x
 from functions import f_1, grad_f1, f_2, grad_f2
 if __name__ == "__main__":
-    optimizer = FletcherReeves(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff')
-    x0 = np.array([2 ,4,21])
+    optimizer = Powell(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff',max_iter=500,function_name="f1")
+    x0 = np.array([0 ,0,0])
     optimum_point, optimum_value, func_eval,ls_fe,k,df = optimizer.optimize(x0)
     print("Optimum Point:", optimum_point)
     print("Optimum Value:", optimum_value)

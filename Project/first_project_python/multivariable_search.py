@@ -182,7 +182,7 @@ import numpy as np
 from line_search import QuadraticCurveFitting
 
 class Powell:
-    def __init__(self, f, grad_f=None, tol=1e-8,tol_ls=1e-12 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
+    def __init__(self, f, grad_f=None, tol=1e-12,tol_ls=1e-12 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
@@ -200,70 +200,103 @@ class Powell:
             self.line_search_method=QuadraticCurveFitting
     def optimize(self, x0):
         self.f.reset()
-        self.logger = OptimizationLogger(self.optimizer_name,self.function_name, self.line_search_name, x0)
-
-        n = len(x0)
+        max_cycle = self.max_iter
         X = [x0]
-        U = np.eye(n)
-        iter_count = 0
+        n = len(x0)
+        j = 0
+        ep = self.tol
+        s = np.eye(n)
+        d = np.zeros((n, n+1, max_cycle))
+        d[:, 0, 0] = s[:, -1]
+        for t in range(1, n+1):
+            d[:, t, 0] = s[:, t-1]
 
-        for k in range(self.max_iter):
-            iter_count += 1
-            X_prev = X[k].copy()
-            for i in range(n):
-                d = U[:, i]
-                print(X[k].shape)
-                print(d.shape)
-                golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d), tol=self.tol_ls)
+        self.logger = OptimizationLogger('Powell', 'f', 'GoldenSection', x0)
+
+        for cycle in range(max_cycle):
+            print(f' *****  cycle: {cycle + 1} *****')
+            if cycle > 0:
+                k = j - n 
+                s[:, 0] = X[ j] - X[ k]
+                d[:, n, cycle] = s[:, 0]
+                for t in range(1, n):
+                    d[:, t, cycle] = d[:, t+1, cycle-1]
+
+                    if (cycle ) % n == 0:
+                        s = np.eye(n)
+                        d[:, 0, cycle] = s[:, -1]
+                        for t in range(1, n+1):
+                            d[:, t, cycle] = s[:, t-1]
+
+                    if np.linalg.norm(d[:, t, cycle]) > 1:
+                        d[:, t, cycle] = d[:, t, cycle] / np.linalg.norm(d[:, t, cycle])
+
+                d[:, 0, cycle] = d[:, n, cycle]
+                D = d[:, 0, cycle]
+
+            for i in range(n+1):
+                i = i + j
+                F = self.f(X[i])
+                D=d[:, i-j, cycle]
+                x_minus_ep = X[i] - ep * D
+                x_plus_ep = X[i] + ep * D
+                F_minus_ep = self.f(x_minus_ep)
+                F_plus_ep = self.f(x_plus_ep)
+                if F_plus_ep < F:
+                    f_alpha = (lambda alpha: self.f(X [i] + alpha * d[:, i-j, cycle]))
+                else:
+                    f_alpha = (lambda alpha: self.f(X[ i] - alpha * d[:, i-j, cycle]))
+  
+
+                golden_section =  self.line_search_method(f_alpha)
                 alfa, _ = golden_section.optimize()
                 self.LS_function_evaluation+=_
-                X[k] = X[k] + alfa * d
 
-            d = X[k] - X_prev
-            golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d), tol=self.tol_ls)
-            alfa, _ = golden_section.optimize()
-            self.LS_function_evaluation+=_
-            X_new = X[k] + alfa * d
+                if F_plus_ep < F:
+                    X.append(X[i] + alfa * d[:, i-j, cycle])
+                else:
+                    X.append( X[i] - alfa * d[:, i-j, cycle])
 
-            if self.stopping_criteria == 'point_diff' and np.linalg.norm(X_new - X_prev) < self.tol:
+                if F_plus_ep > F and F_minus_ep > F and np.linalg.norm(X[i+1] - X[i]) < self.tol:
+                    print('Problem solved')
+                    break
+            self.logger.log(iteration=i, point=X[i], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
+            j = i+1
+            if F_plus_ep > F and F_minus_ep > F and np.linalg.norm(X[i+1] - X[i]) < self.tol:
+                print('Problem solved')
                 break
-            if self.stopping_criteria == 'gradient_norm' and np.linalg.norm(X_new - X_prev) < self.tol:
-                break
-
-            U[:, 0:n-1] = U[:, 1:n]
-            U[:, -1] = d / np.linalg.norm(d)
-            X.append(X_new)
-            self.logger.log(iteration=k, point=X[k], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
 
 
         optimum_point = X[-1]
-        optimum_value = self.f(X[-1])
+        k = cycle
         func_eval = self.f.get_eval_count()
+        optimum_value = self.f(optimum_point)
+        return optimum_point,optimum_value , func_eval, self.ls_fe, k, self.logger.get_dataframe()
 
-        return optimum_point, optimum_value, func_eval, self.ls_fe, k, self.logger.get_dataframe()
 
 
-
-"""class NelderMead:
-    def __init__(self, f, grad_f=None, tol=1e-6, max_iter=100, stopping_criteria='point_diff', optimizer_name='Nelder-Mead', line_search_name='None'):
+class NelderMead:
+    def __init__(self, f, grad_f=None, tol=1e-12, max_iter=100, stopping_criteria='point_diff', optimizer_name='Nelder-Mead', line_search_name='None',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
         self.stopping_criteria = stopping_criteria
         self.optimizer_name = optimizer_name
+        self.function_name=function_name
         self.line_search_name = line_search_name
         self.logger = None
         self.ls_fe = 0
 
     def optimize(self, x0):
         self.f.reset()
-        self.logger = OptimizationLogger(self.optimizer_name, self.line_search_name, x0)
+        self.logger = OptimizationLogger(self.optimizer_name,self.function_name, self.line_search_name, x0)
 
         n = len(x0)
         alpha = 1.0
         gamma = 2.0
         rho = 0.5
         sigma = 0.5
+        X=[x0]
 
         # Initial simplex
         simplex = [x0]
@@ -281,41 +314,43 @@ class Powell:
             if k % n == 0:
                 point = simplex[0]
                 value = self.f(point)
-            if self.stopping_criteria == 'point_diff' and np.max(np.abs(simplex[0] - simplex[1:])) < self.tol:
-                break
 
             x0 = np.mean(simplex[:-1], axis=0)
             xr = x0 + alpha * (x0 - simplex[-1])
             fr = self.f(xr)
             if self.f(simplex[0]) <= fr < self.f(simplex[-2]):
                 simplex[-1] = xr
-                self.logger.log_iteration(k, xr, fr, self.f.get_eval_count(), self.ls_fe, operation='reflection')
+                operation='reflection'
             elif fr < self.f(simplex[0]):
                 xe = x0 + gamma * (xr - x0)
                 fe = self.f(xe)
                 if fe < fr:
                     simplex[-1] = xe
-                    self.logger.log_iteration(k, xe, fe, self.f.get_eval_count(), self.ls_fe, operation='expansion')
+                    operation='expansion'
                 else:
                     simplex[-1] = xr
-                    self.logger.log_iteration(k, xr, fr, self.f.get_eval_count(), self.ls_fe, operation='reflection')
+                    operation='reflection'
             else:
                 xc = x0 + rho * (simplex[-1] - x0)
                 fc = self.f(xc)
                 if fc < self.f(simplex[-1]):
                     simplex[-1] = xc
-                    self.logger.log_iteration(k, xc, fc, self.f.get_eval_count(), self.ls_fe, operation='contraction')
+                    operation='contraction'
                 else:
                     for i in range(1, len(simplex)):
                         simplex[i] = simplex[0] + sigma * (simplex[i] - simplex[0])
-                    self.logger.log_iteration(k, None, None, self.f.get_eval_count(), self.ls_fe, operation='shrink')
-            
+                    operation='shrink'
+            if self.stopping_criteria == 'point_diff' and np.linalg.norm(simplex[0] -X[k]) < self.tol:
+                break
+            X.append(simplex[0])
+
+            self.logger.log(iteration=k, point=simplex[0], func_eval=self.f.get_eval_count(),operation=operation)
 
         optimum_point = simplex[0]
         optimum_value = self.f(optimum_point)
         func_eval = self.f.get_eval_count()
 
-        return optimum_point, optimum_value, func_eval, self.ls_fe, k, self.logger.get_dataframe()"""
+        return optimum_point, optimum_value, func_eval, self.ls_fe, k, self.logger.get_dataframe()
 
 
 
@@ -329,7 +364,7 @@ def grad_quadratic(x):
     return 2 * x
 from functions import f_1, grad_f1, f_2, grad_f2
 if __name__ == "__main__":
-    optimizer = Powell(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff',max_iter=5000,function_name="f1")
+    optimizer = NelderMead(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff',max_iter=5000,function_name="f1")
     x0 = np.array([0 ,0,0])
     optimum_point, optimum_value, func_eval,ls_fe,k,df = optimizer.optimize(x0)
     print("Optimum Point:", optimum_point)

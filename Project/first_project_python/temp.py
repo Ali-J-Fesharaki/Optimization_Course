@@ -65,7 +65,7 @@ class OptimizationLogger:
         print(filename)
         df.to_csv(filename, index=False)
 class Powell:
-    def __init__(self, f, grad_f=None, tol=1e-4,tol_ls=1e-4 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
+    def __init__(self, f, grad_f=None, tol=1e-12,tol_ls=1e-12 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
@@ -102,7 +102,7 @@ class Powell:
                 k = j - n 
                 s[:, 0] = X[ j] - X[ k]
                 d[:, n, cycle] = s[:, 0]
-                for t in range(n-2, n):
+                for t in range(1, n):
                     d[:, t, cycle] = d[:, t+1, cycle-1]
 
                     if (cycle ) % n == 0:
@@ -115,12 +115,14 @@ class Powell:
                         d[:, t, cycle] = d[:, t, cycle] / np.linalg.norm(d[:, t, cycle])
 
                 d[:, 0, cycle] = d[:, n, cycle]
+                D = d[:, 0, cycle]
 
             for i in range(n+1):
                 i = i + j
                 F = self.f(X[i])
-                x_minus_ep = X[i] - ep * d[:, i-j, cycle]
-                x_plus_ep = X[i] + ep * d[:, i-j, cycle]
+                D=d[:, i-j, cycle]
+                x_minus_ep = X[i] - ep * D
+                x_plus_ep = X[i] + ep * D
                 F_minus_ep = self.f(x_minus_ep)
                 F_plus_ep = self.f(x_plus_ep)
                 if F_plus_ep < F:
@@ -142,7 +144,7 @@ class Powell:
                     print('Problem solved')
                     break
             self.logger.log(iteration=i, point=X[i], func_eval=self.f.get_eval_count(),line_search_evals=self.LS_function_evaluation)
-            j = i
+            j = i+1
             if F_plus_ep > F and F_minus_ep > F and np.linalg.norm(X[i+1] - X[i]) < self.tol:
                 print('Problem solved')
                 break
@@ -155,8 +157,8 @@ class Powell:
         return optimum_point,optimum_value , func_eval, self.ls_fe, k, self.logger.get_dataframe()
 
 if __name__ == "__main__":
-    optimizer = Powell(f_2, grad_f2,line_search_name="GoldenSection",stopping_criteria='point_diff',max_iter=2000,function_name="f1")
-    x0 = np.array([0 ,0])
+    optimizer = Powell(f_1, grad_f1,line_search_name="GoldenSection",stopping_criteria='point_diff',max_iter=2000,function_name="f1")
+    x0 = np.array([0 ,0,0])
     optimum_point, optimum_value, func_eval,ls_fe,k,df = optimizer.optimize(x0)
     print("Optimum Point:", optimum_point)
     print("Optimum Value:", optimum_value)

@@ -83,7 +83,7 @@ class FletcherReeves:
             if self.stopping_criteria == 'point_diff' and k > 0 and np.linalg.norm(X[k] - X[k-1]) < self.tol:
                 break
 
-            if  k == 1:
+            if  k == 1 or k% n == 0:
                 d = -C[k]
             try:
                 beta_k = (np.linalg.norm(C[k]) / np.linalg.norm(C[k-1]))**2
@@ -94,7 +94,7 @@ class FletcherReeves:
                 d = -C[k] + beta_k * d
 
             #line search
-            golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d))
+            golden_section = self.line_search_method(lambda alpha: self.f(X[k] + alpha * d),tol=self.tol_ls)
             alfa, _ = golden_section.optimize()
             self.LS_function_evaluation+=_
             X.append(X[k] + alfa * d)

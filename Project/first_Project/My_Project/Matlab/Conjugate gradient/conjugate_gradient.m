@@ -3,15 +3,15 @@ syms alf
 k=1;
 format long
 n=size(x0,1);
-v=zeros(n,400);
+v=zeros(n,2);
 v(:,1)=x0;
-d=zeros(n,400);
+d=zeros(n,2);
 g = gradient(f);
 c(:,k) = subs(g,x,v(:,k)); % evaluate gradient at initial point
 
 
 func_eval = 1;
-while k < 400
+while k < 800
     fprintf('\n*****  step %i:  *****\n',k)
     if mod(k,n)==0 || k==1
         d(:,k) = -c(:,k);
@@ -39,12 +39,12 @@ while k < 400
     end
     func_eval=func_eval+1; %function evaluaion 
     fprintf('\nnorm of gradient is: %f  \n\n\n',norm(c(:,k+1)))
-    k=k+1;
-    fprintf(' the distance between two opt_point : %f',norm(v(:,k+1)-v(:,k)));
+    
     if (norm(v(:,k+1)-v(:,k))<tol_FR)
         fprintf('algorithm converged the distance between two opt_point : %f',norm(v(:,k+1)-v(:,k)));
         break;
     end
+    k=k+1;
 end
 fprintf('\n ****************** final step is:%i ****************** \n ',k-1)
 fprintf('\nsum of the Fletcher Reeves function evaluation is: %i \n',func_eval)
@@ -54,6 +54,7 @@ optimum_value = vpa(subs(f,x,optimum_point),6)
 
 %% saving Results
 GS_iteration(k,:)=0;
+v(:,k+1)=[];% due to adding end condition on diffrence between two optimal point we don't have gs iteration for new value so we should ommit it.
 x = vpa(v,5)';
 FR_iteration=(0:k-1)';
 

@@ -24,9 +24,8 @@ def grad_f2(x):
                4.0 * x[0] * x[1] * (x[0] * x[1]**2 - x[0] + 2.25))
     return grad
 
-"""if (__name__ == "__main__"):
-    x = np.array([1.0, 1.0, 1.0])
-    print(f_1(x))
-    print(grad_f1(x))
-    print(f_2(x))
-    print(grad_f2(x))"""
+if (__name__ == "__main__"):
+    x1 = np.array([ 0,0])
+    x2 = np.array([ 0,0.5])
+    print(f_2(x1))
+    print(f_2(x2))

@@ -1,0 +1,87 @@
+Optimization Algorithms in Python
+This repository contains implementations of several optimization algorithms, including Fletcher-Reeves, Powell, Nelder-Mead, and BFGS. These algorithms are used to minimize a given function, and the initial points for optimization are generated randomly within a specified range.
+
+Project Structure
+optimizers.py: Contains the implementations of the optimization algorithms.
+functions.py: Contains the definition of the functions and their gradients to be optimized.
+line_search.py: Contains the line search methods used by some optimization algorithms.
+main.py: Contains the main script that generates initial points, runs the optimization algorithms in parallel, and collects the results.
+Usage
+Dependencies
+Make sure you have the following dependencies installed:
+
+numpy
+pandas
+concurrent.futures
+You can install the dependencies using pip:
+
+bash
+Copy code
+pip install numpy pandas
+Running the Code
+To run the optimization algorithms with randomly generated initial points, follow these steps:
+
+Ensure all required files are present: Make sure optimizers.py, functions.py, line_search.py, and main.py are in the same directory.
+
+Generate initial points and run optimizations: Execute the main.py script.
+
+bash
+Copy code
+python main.py
+Example of main.py
+Here's the content of main.py:
+
+python
+Copy code
+import numpy as np
+import concurrent.futures
+from optimizers import FletcherReeves, Powell, NelderMead, BFGS  # Replace with actual import paths
+from functions import f_1, grad_f1  # Replace with actual functions
+
+def run_optimization(optimizer_class, initial_point, function, grad_function=None):
+    optimizer = optimizer_class(f=function, grad_f=grad_function)
+    result = optimizer.optimize(initial_point)
+    return result
+
+def main():
+    num_points = 10  # Number of random initial points
+    dimension = 2  # Dimension of the initial points
+    initial_points = [np.random.uniform(-5, 25, dimension) for _ in range(num_points)]
+    
+    optimizers = [
+        (FletcherReeves, f_1, grad_f1),
+        (Powell, f_1, None),
+        (NelderMead, f_1, None),
+        (BFGS, f_1, grad_f1)
+    ]
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = []
+        for initial_point in initial_points:
+            for optimizer_class, function, grad_function in optimizers:
+                futures.append(executor.submit(run_optimization, optimizer_class, initial_point, function, grad_function))
+        
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            print(result)
+            # Optionally save the result to a file
+            # result[-1].save_to_file()  # Uncomment this if your logger is set to save results to a file
+
+if __name__ == '__main__':
+    main()
+Notes
+Initial Points: The initial points for optimization are generated randomly within the range 
+[
+−
+5
+,
+25
+]
+[−5,25] for each dimension.
+Parallel Execution: The optimizations are run in parallel using the concurrent.futures module to speed up the computation.
+Logging and Results: Each optimizer logs its progress, and the results can be optionally saved to a file.
+Contributing
+If you have suggestions or improvements, feel free to submit a pull request or open an issue.
+
+License
+This project is licensed under the MIT License.

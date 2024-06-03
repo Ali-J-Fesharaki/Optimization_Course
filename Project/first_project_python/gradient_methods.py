@@ -48,7 +48,7 @@ class OptimizationLogger:
         print(filename)
         df.to_csv(filename, index=False)
 class FletcherReeves:
-    def __init__(self, f, grad_f=None, tol=1e-6,tol_ls=1e-6 ,max_iter=1000, stopping_criteria='point_diff', optimizer_name='FletcherReeves', line_search_name='GoldenSection',function_name='f'):
+    def __init__(self, f, grad_f=None, tol=1e-4,tol_ls=1e-4 ,max_iter=1000, stopping_criteria='point_diff', optimizer_name='FletcherReeves', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.grad_f = FunctionWithEvalCounter(grad_f)
         self.tol = tol
@@ -57,6 +57,7 @@ class FletcherReeves:
         self.stopping_criteria = stopping_criteria
         self.LS_function_evaluation=0
         self.optimizer_name = optimizer_name
+        self.function_name=function_name
         self.line_search_name = line_search_name
         if(self.line_search_name=='GoldenSection'):
             self.line_search_method=GoldenSection
@@ -104,6 +105,7 @@ class FletcherReeves:
         optimum_point = X[k]
         optimum_value = self.f(optimum_point)
         func_eval = self.f.get_eval_count() 
+        self.logger.save_to_file()
         return optimum_point, optimum_value, func_eval, self.LS_function_evaluation, k, self.logger.get_dataframe()
 
 import numpy as np

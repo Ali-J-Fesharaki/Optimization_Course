@@ -110,6 +110,7 @@ class BFGS:
         optimum_point = X[k]
         func_eval = self.f.get_eval_count() 
         optimum_value = self.f(optimum_point)
+        self.logger.save_to_file()
         return optimum_point, optimum_value, func_eval,self.LS_function_evaluation, k, self.logger.get_dataframe()  
       
     def hessian(self, x):

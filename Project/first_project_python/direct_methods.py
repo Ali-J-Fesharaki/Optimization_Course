@@ -48,7 +48,7 @@ class OptimizationLogger:
         print(filename)
         df.to_csv(filename, index=False)
 class Powell:
-    def __init__(self, f, grad_f=None, tol=1e-12,tol_ls=1e-12 ,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
+    def __init__(self, f, grad_f=None, tol=1e-4,tol_ls=1e-4,max_iter=100, stopping_criteria='point_diff', optimizer_name='Powell', line_search_name='GoldenSection',function_name='f'):
         self.f = FunctionWithEvalCounter(f)
         self.tol = tol
         self.max_iter = max_iter
@@ -77,7 +77,7 @@ class Powell:
         for t in range(1, n+1):
             d[:, t, 0] = s[:, t-1]
 
-        self.logger = OptimizationLogger('Powell', 'f', 'GoldenSection', x0)
+        self.logger = OptimizationLogger(self.optimizer_name, self.function_name, self.line_search_name, x0)
 
         for cycle in range(max_cycle):
             print(f' *****  cycle: {cycle + 1} *****')
@@ -137,6 +137,7 @@ class Powell:
         k = cycle
         func_eval = self.f.get_eval_count()
         optimum_value = self.f(optimum_point)
+        self.logger.save_to_file()
         return optimum_point,optimum_value , func_eval, self.ls_fe, k, self.logger.get_dataframe()
 
 
@@ -245,4 +246,5 @@ class NelderMead:
         optimum_point = simplex[:,0]
         optimum_value = self.f(optimum_point)
         func_eval = self.f.get_eval_count()
+        self.logger.save_to_file()
         return optimum_point, optimum_value, func_eval, self.LS_function_evaluation,iter_count, self.logger.get_dataframe()

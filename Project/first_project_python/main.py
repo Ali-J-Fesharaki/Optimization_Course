@@ -31,8 +31,5 @@ def main():
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             print(result)
-            # Optionally save the result to a file
-             # Uncomment this if your logger is set to save results to a file
-
 if __name__ == '__main__':
     main()

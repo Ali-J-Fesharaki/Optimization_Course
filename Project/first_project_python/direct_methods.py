@@ -248,3 +248,31 @@ class NelderMead:
         func_eval = self.f.get_eval_count()
         self.logger.save_to_file()
         return optimum_point, optimum_value, func_eval, self.LS_function_evaluation,iter_count, self.logger.get_dataframe()
+    
+def objective_function(x):
+    x1, x2, x3, x4, x5 = x
+    obj_value = np.exp(x1 * x2 * x3 * x4 * x5) - 0.5 * (x1**3 + x2**3 + 1)**2
+    return obj_value
+
+def constraint1(x):
+    x1, x2, x3, x4, x5 = x
+    return x1**2 + x2**2 + x3**2 + x4**2 + x5**2 - 10
+
+def constraint2(x):
+    x1, x2, x3, x4, x5 = x
+    return x2 * x3 - 5 * x4 * x5
+
+def constraint3(x):
+    x1, x2, x3, x4, x5 = x
+    return x1**3 + x2**3 + 1    
+    
+if(__name__=='__main__'):
+    eq_constraints=[constraint1,constraint2,constraint3]
+    ineq_constraints=[(lambda x:0)]
+    rk=1
+    f_1=lambda x:(objective_function(x) +rk*sum([max(0,constraint(x))**2 for constraint in ineq_constraints])+sum([constraint(x)**2 for constraint in eq_constraints]))
+    x0 = np.array([0, 0,0,0,0])
+    nelder_mead = NelderMead(f_1, tol=1e-4, max_iter=1000, stopping_criteria='point_diff', optimizer_name='NelderMead', line_search_name='None',function_name='f1')
+    optimum_point, optimum_value, func_eval, ls,iter_count, df=nelder_mead.optimize(x0)
+
+    

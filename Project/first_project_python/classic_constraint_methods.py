@@ -50,7 +50,7 @@ class Extrior_Penalty:
         print(self.rk)
         print("*******************************************************")
         print("*******************************************************")
-        return lambda x:(self.f(x) +self.rk*sum([max(0,constraint(x))**2 for constraint in self.ineq_constraints])+sum([self.rk*constraint(x)**2 for constraint in self.eq_constraints]))
+        return lambda x:(self.f(x) +self.rk*sum([max(0,constraint(x))**2 for constraint in self.ineq_constraints])+self.rk*sum([constraint(x)**2 for constraint in self.eq_constraints]))
     def optimize(self,x):
         optimum_point_old = x
         for i in range(self.max_iter):
@@ -108,44 +108,7 @@ class Augmented_Lagrangian:
                     break
             optimum_point_old = optimum_point
         return x
-class SQP_matlab:
-    def __init__(self, f="",ineq_constraints=[(lambda x:0)],eq_constraints=[(lambda x:0)],grad_f=None, tol=1e-2,tol_ls=1e-4,max_iter=1000, stopping_criteria='point_diff', optimizer_name='SQP_matlab', line_search_name='None',function_name='f'):
-        self.f = f
-        self.ineq_constraints = ineq_constraints
-        self.eq_constraints=eq_constraints
-        self.grad_f = grad_f
-        self.tol = tol
-        self.tol_ls = tol_ls
-        self.max_iter = max_iter
-        self.stopping_criteria = stopping_criteria
-        self.optimizer_name = optimizer_name
-        self.line_search_name = line_search_name
-        self.function_name = function_name        
-    def optimize(self,x):
-        import matlab.engine
 
-        # Start MATLAB engine
-        eng = matlab.engine.start_matlab()
-
-        # Define your objective function and constraints in MATLAB
-        eng.eval(self.f, nargout=0)
-
-        # Define initial guess
-        x0 = matlab.double(x.tolist())
-
-        # Set optimization options
-        options = eng.optimoptions('fmincon', 'Algorithm', 'sqp', 'Display', 'iter', 'OutputFcn', 'outfun')
-
-        # Define custom output function to capture iteration info
-        eng.eval("""
-        function stop = outfun(x, optimValues, state)
-            stop = false;
-            disp(['Iteration: ', num2str(optimValues.iteration), ', Function value: ', num2str(optimValues.fval)]);
-        end
-        """, nargout=0)
-
-        # Call fmincon
-        result, fval, exitflag, output = eng.fmincon('objfun', x0, matlab.double([]), matlab.double([]), matlab.double([]), matlab.double([]), matlab.double([]), matlab.double([]), 'confun', options, nargout=4)
 
         
 def objective_function(x):

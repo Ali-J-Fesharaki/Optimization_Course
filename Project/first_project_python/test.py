@@ -1,28 +1,66 @@
-# from direct_methods import NelderMead
-# from gradient_methods import FletcherReeves
-# from functions import f_1 ,f_2,grad_f1,grad_f2
+import numpy as np
 
-# if(__name__=="__main__"):
-#     optimum_point, optimum_value, func_eval,ls,iter_count, df=FletcherReeves(f_1,grad_f=grad_f1,tol_ls=1e-4,tol=1e-4).optimize([0,0,0])
-#     print("Optimum point:",optimum_point)
-#     print("Optimum value:",optimum_value)
-#     print("Function evaluation count:",func_eval)
-#     print("Line search evaluation count:",ls)
-#     print("Number of iterations:",iter_count)
-import sympy as sp
-import inspect
-import re
-# Define the symbolic variables
-x1, x2, x3, x4, x5 = sp.symbols('x1 x2 x3 x4 x5')
-x = [x1, x2, x3, x4, x5]
+class Particle:
+    def __init__(self, position, velocity=None):
+        self.position = position
+        self.velocity = velocity if velocity is not None else np.zeros_like(position)
+        self.best_position = position.copy()
+        self.best_value = float('inf')
 
-# Define the objective function using sympy
+class ParticleSwarmOptimization:
+    def __init__(self, objective_function, n_vars, lower_bound, upper_bound, initial_point=None, constraints=None, swarm_size=50, inertia=0.5, cognitive_rate=1.5, social_rate=1.5):
+        self.objective_function = objective_function
+        self.n_vars = n_vars
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+        self.constraints = constraints if constraints else []
+        self.swarm_size = swarm_size
+        self.inertia = inertia
+        self.cognitive_rate = cognitive_rate
+        self.social_rate = social_rate
+        self.initial_point = initial_point
+
+    def evaluate(self, x):
+        return self.objective_function(x)
+
+    def initialize_swarm(self):
+        swarm = [Particle(np.random.uniform(self.lower_bound, self.upper_bound, self.n_vars)) for _ in range(self.swarm_size)]
+        return swarm
+
+    def optimize(self, max_iterations=1000):
+        swarm = self.initialize_swarm()
+        global_best_position = None
+        global_best_value = float('inf')
+
+        for _ in range(max_iterations):
+            for particle in swarm:
+                current_value = self.evaluate(particle.position)
+                if current_value < particle.best_value:
+                    particle.best_value = current_value
+                    particle.best_position = particle.position.copy()
+
+                if current_value < global_best_value:
+                    global_best_value = current_value
+                    global_best_position = particle.position.copy()
+
+                # Update velocity and position
+                inertia_term = particle.velocity * self.inertia
+                cognitive_term = np.random.rand(self.n_vars) * self.cognitive_rate * (particle.best_position - particle.position)
+                social_term = np.random.rand(self.n_vars) * self.social_rate * (global_best_position - particle.position)
+
+                particle.velocity = inertia_term + cognitive_term + social_term
+                particle.position += particle.velocity
+
+                # Ensure particles stay within bounds
+                particle.position = np.clip(particle.position, self.lower_bound, self.upper_bound)
+
+        return global_best_position, global_best_value
+
+# Objective function and constraints
 def objective_function(x):
     x1, x2, x3, x4, x5 = x
-    obj_value = sp.exp(x1 * x2 * x3 * x4 * x5) - 0.5 * (x1**3 + x2**3 + 1)**2
-    return obj_value
+    return np.exp(x1 * x2 * x3 * x4 * x5) - 0.5 * (x1**3 + x2**3 + 1)**2
 
-# Define the constraints using sympy
 def constraint1(x):
     x1, x2, x3, x4, x5 = x
     return x1**2 + x2**2 + x3**2 + x4**2 + x5**2 - 10
@@ -34,50 +72,24 @@ def constraint2(x):
 def constraint3(x):
     x1, x2, x3, x4, x5 = x
     return x1**3 + x2**3 + 1
+def create_penalty_function(f,ineq_constraints=[(lambda x:0)],eq_constraints=[(lambda x:0)],rk=1):
+    return lambda x:(f(x) +rk*sum([max(0,constraint(x))**2 for constraint in ineq_constraints])+sum([rk*constraint(x)**2 for constraint in eq_constraints]))
+# Main execution
+if __name__ == "__main__":
+    # Setup PSO optimizer with problem parameters
+    n_vars = 5
+    lower_bound = -5
+    upper_bound = 5
+    optim_points=[]
 
-# Create symbolic expressions
-objective_expr = objective_function(x)
-constraint1_expr = constraint1(x)
-constraint2_expr = constraint2(x)
-constraint3_expr = constraint3(x)
+    for i in range(0, 20):
+        print(f"Penalty function {i}:")
+        penalty_function = create_penalty_function(objective_function, ineq_constraints=[constraint1, constraint2], eq_constraints=[constraint3], rk=10^i)
+        pso_optimizer = ParticleSwarmOptimization(objective_function, n_vars, lower_bound, upper_bound)
 
-def python_to_matlab(func, func_name, var_names):
-    func_str = inspect.getsource(func)
-    func_str = re.sub(r'^def .*?\(', f'def {func_name}(', func_str, flags=re.DOTALL)
-    func_str = func_str.replace('return ', '').replace('\n', '')
-    for i, var in enumerate(var_names):
-        func_str = func_str.replace(f'x{i+1}', var)
-    return func_str
+        # Perform optimization
+        best_solution, best_fitness = pso_optimizer.optimize()
+        print(penalty_function(best_solution))
+        optim_points.append(best_solution)
 
-# Variable names for MATLAB
-var_names = ['x(1)', 'x(2)', 'x(3)', 'x(4)', 'x(5)']
-
-# Convert Python functions to MATLAB strings
-objective_str = python_to_matlab(objective_function, 'objective_function', var_names)
-constraint1_str = python_to_matlab(constraint1, 'constraint1', var_names)
-constraint2_str = python_to_matlab(constraint2, 'constraint2', var_names)
-constraint3_str = python_to_matlab(constraint3, 'constraint3', var_names)
-
-# Combine constraints into one string
-constraints_str = f"""
-function [c, ceq] = confun(x)
-    c = zeros(2, 1);
-    ceq = zeros(1, 1);
-    c(1) = {constraint1_str};
-    c(2) = {constraint2_str};
-    ceq(1) = {constraint3_str};
-end
-"""
-
-# Objective function string
-objective_func_str = f"""
-function f = objfun(x)
-    {objective_str}
-end
-"""
-
-# Combine all MATLAB code
-matlab_code_str = objective_func_str + "\n" + constraints_str
-
-# Print MATLAB code
-print(matlab_code_str)
+    print(optim_points)

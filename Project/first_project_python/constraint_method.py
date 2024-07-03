@@ -108,6 +108,44 @@ class Augmented_Lagrangian:
                     break
             optimum_point_old = optimum_point
         return x
+class SQP_matlab:
+    def __init__(self, f="",ineq_constraints=[(lambda x:0)],eq_constraints=[(lambda x:0)],grad_f=None, tol=1e-2,tol_ls=1e-4,max_iter=1000, stopping_criteria='point_diff', optimizer_name='SQP_matlab', line_search_name='None',function_name='f'):
+        self.f = f
+        self.ineq_constraints = ineq_constraints
+        self.eq_constraints=eq_constraints
+        self.grad_f = grad_f
+        self.tol = tol
+        self.tol_ls = tol_ls
+        self.max_iter = max_iter
+        self.stopping_criteria = stopping_criteria
+        self.optimizer_name = optimizer_name
+        self.line_search_name = line_search_name
+        self.function_name = function_name        
+    def optimize(self,x):
+        import matlab.engine
+
+        # Start MATLAB engine
+        eng = matlab.engine.start_matlab()
+
+        # Define your objective function and constraints in MATLAB
+        eng.eval(self.f, nargout=0)
+
+        # Define initial guess
+        x0 = matlab.double(x.tolist())
+
+        # Set optimization options
+        options = eng.optimoptions('fmincon', 'Algorithm', 'sqp', 'Display', 'iter', 'OutputFcn', 'outfun')
+
+        # Define custom output function to capture iteration info
+        eng.eval("""
+        function stop = outfun(x, optimValues, state)
+            stop = false;
+            disp(['Iteration: ', num2str(optimValues.iteration), ', Function value: ', num2str(optimValues.fval)]);
+        end
+        """, nargout=0)
+
+        # Call fmincon
+        result, fval, exitflag, output = eng.fmincon('objfun', x0, matlab.double([]), matlab.double([]), matlab.double([]), matlab.double([]), matlab.double([]), matlab.double([]), 'confun', options, nargout=4)
 
         
 def objective_function(x):
@@ -127,22 +165,56 @@ def constraint3(x):
     x1, x2, x3, x4, x5 = x
     return x1**3 + x2**3 + 1     
  
-# def objective_function(x):
-#     x1, x2 = x
-#     return (x1**2 + x2 - 11)**2 + (x1 + x2**2 - 7)**2
+def objective_function(x):
+    x1, x2 = x
+    return (x1**2 + x2 - 11)**2 + (x1 + x2**2 - 7)**2
 
-# # Define the constraints
-# def constraint1(x):
-#     x1, x2 = x
-#     return -((x1 + 2)**2 - x2)
+# Define the constraints
+def constraint1(x):
+    x1, x2 = x
+    return -((x1 + 2)**2 - x2)
 
-# def constraint2(x):
-#     x1, x2 = x
-#     return -(-4 * x1 + 10 * x2)
+def constraint2(x):
+    x1, x2 = x
+    return -(-4 * x1 + 10 * x2)
+
+# f_1 = """
+# function f = objfun(x)
+#     f = exp(x(1) * x(2) * x(3) * x(4) * x(5)) - 0.5 * (x(1)^3 + x(2)^3 + 1)^2;
+# end
+# """
+
+# constraints_1_str = """
+# function [c, ceq] = confun(x)
+#     c = zeros(2, 1);
+#     ceq = zeros(1, 1);
+#     c(1) = x(1)^2 + x(2)^2 + x(3)^2 + x(4)^2 + x(5)^2 - 10;
+#     c(2) = x(2) * x(3) - 5 * x(4) * x(5);
+#     ceq(1) = x(1)^3 + x(2)^3 + 1;
+# end
+# """
+# f_1_constraint = f_1 + "\n" + constraints_1_str
+
+# f_2 = """
+# function f = objfun(x)
+#     f = (x(1)^2 + x(2) - 11)^2 + (x(1) + x(2)^2 - 7)^2;
+# end
+# """
+
+# constraints_2_str = """
+# function [c, ceq] = confun(x)
+#     c = zeros(2, 1);
+#     ceq = [];
+#     c(1) = -((x(1) + 2)^2 - x(2));
+#     c(2) = -(-4 * x(1) + 10 * x(2));
+# end
+# """
+
+# f_2_constraint = f_2 + "\n" + constraints_2_str
+
 
 if(__name__=='__main__'):
-    optimizer=Augmented_Lagrangian(objective_function,eq_constraints=[constraint1,constraint2,constraint3])
-    # optimizer = Augmented_Lagrangian(objective_function,ineq_constraints=[constraint1,constraint2])
+    optimizer = Augmented_Lagrangian(objective_function,ineq_constraints=[constraint1,constraint2])
     #x = np.array([3, 4])# Wow when i wanted to type the numbers of x the copilot autocomplete the numbers Wow.....
     x=np.array([-1.8,1.7,1.9,-0.8,-0.8])
     print(optimizer.optimize(x))

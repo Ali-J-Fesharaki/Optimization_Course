@@ -5,8 +5,8 @@ import numpy as np
 if (__name__ == "__main__"):
     X0= np.array([1.8,1.7,1.9,-0.8,-0.8])
     optimizer_1=Extrior_Penalty(constrained_f1,eq_constraints=[constraint1_f1,constraint2_f1,constraint3_f1])
-    optimizer_2 = Augmented_Lagrangian(constrained_f1,eq_constraints=[constraint2_f1,constraint3_f1])
-    optimizer_3 = SQP_Optimizer(constrained_f1,eq_constraints=[constraint2_f1,constraint3_f1])
+    optimizer_2 = Augmented_Lagrangian(constrained_f1,eq_constraints=[constraint1_f1,constraint2_f1,constraint3_f1])
+    optimizer_3 = SQP_Optimizer(constrained_f1,eq_constraints=[constraint1_f1,constraint2_f1,constraint3_f1])
     x_1,func_eval_1,iter_count_1,df_1 = optimizer_1.optimize(X0)
     print("Extrior Penalty Method_finished")
     x_2,func_eval_2,iter_count_2,df_2= optimizer_2.optimize(X0)

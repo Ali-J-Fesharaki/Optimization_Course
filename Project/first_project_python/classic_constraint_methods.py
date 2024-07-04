@@ -114,6 +114,9 @@ class Augmented_Lagrangian:
         self.landa=np.zeros(len(self.ineq_constraints)+len(self.eq_constraints))        
         self.m=len(self.ineq_constraints)
         self.f_penalty = self.create_penalty_function()
+        self.total_func_eval=0
+        self.total_iteration=0
+        self.total_df=pd.DataFrame()
     
 
     def create_penalty_function(self):
@@ -127,7 +130,9 @@ class Augmented_Lagrangian:
             self.f_penalty=self.create_penalty_function()
             optimizer=NelderMead(self.f_penalty)
             optimum_point, optimum_value, func_eval, ls,iter_count, df = optimizer.optimize(x)
-
+            self.total_func_eval+=func_eval
+            self.total_iteration+=iter_count
+            self.total_df=pd.concat([self.total_df,df])
             for i,constraint in enumerate(self.ineq_constraints):
                 self.landa[i]+=2*self.rk*max(-(self.landa[i]/2*self.rk),constraint(optimum_point))
 
@@ -138,8 +143,7 @@ class Augmented_Lagrangian:
                 if np.linalg.norm(optimum_point_old-optimum_point) < self.tol:
                     break
             optimum_point_old = optimum_point
-        return x
-
+        return x,self.total_func_eval,self.total_iteration,self.total_df
 
         
 

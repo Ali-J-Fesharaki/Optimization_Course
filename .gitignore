@@ -40,3 +40,5 @@ HomeWork/HW_03/Problem2_Curvfiting_golden_section/__pycache__/line_search.cpytho
 **/Lectures
 **/*.mat
 Project/first_Project/My_Project/Python/python_codes/direct_methods.py
+**/__pycache__/
+Project/first_project_python/__pycache__/functions.cpython-310.pyc
